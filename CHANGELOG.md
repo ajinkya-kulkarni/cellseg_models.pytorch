@@ -1,3 +1,9 @@
+<a id='changelog-0.1.30'></a>
+# 0.1.30 — 2025-11-14
+
+# Feat
+Add `save_intermediate` param to .predict() method for models.
+
 <a id='changelog-0.1.29'></a>
 # 0.1.29 — 2025-10-21
 
