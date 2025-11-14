@@ -13,10 +13,7 @@ except ImportError:
     HAS_CUCIM = False
 
 
-CUCIM_READABLE_FORMATS = (
-    ".svs",
-    ".tiff",
-)
+CUCIM_READABLE_FORMATS = (".svs", ".tiff", ".tif")
 
 
 class CucimReader(SlideReaderBackend):

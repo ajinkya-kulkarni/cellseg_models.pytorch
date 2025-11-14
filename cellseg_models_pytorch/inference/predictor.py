@@ -76,6 +76,7 @@ class BasePredictor:
         self,
         x: Union[torch.Tensor, np.ndarray, Image],
         apply_boundary_weight: bool = False,
+        save_intermediate: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """Run the input through the model.
 
@@ -88,6 +89,10 @@ class BasePredictor:
             apply_boundary_weight (bool, default=True):
                 Whether to apply boundary weights to mitigate boundary artefacts
                 in aux predictions.
+            save_intermediate (bool, default=False):
+                Whether to save intermediate results (logits). If True, the method
+                returns a tuple (final predictions, intermediate results), where the
+                intermediate results are the raw model outputs before argmax.
 
         Returns:
             Dict[str, torch.Tensor]:
@@ -117,15 +122,22 @@ class BasePredictor:
                 .unsqueeze(0)
             )
 
+        intermediate = None
         with torch.no_grad():
             if self.mixed_precision:
                 with torch.autocast(self.device.type, dtype=torch.float16):
                     probs = self._predict(x)
+                    if save_intermediate:
+                        intermediate = probs
                     probs = self._argmax(probs)
             else:
                 probs = self._predict(x)
+                if save_intermediate:
+                    intermediate = probs
                 probs = self._argmax(probs)
 
+        if save_intermediate:
+            return probs, intermediate
         return probs
 
     def _to_tensor(self, x: Union[np.ndarray, Image]) -> torch.Tensor:
@@ -265,6 +277,7 @@ class Predictor(BasePredictor):
         stride: int,
         padding: int = 20,
         apply_boundary_weight: bool = True,
+        save_intermediate: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """Run the input through the model.
 
@@ -283,11 +296,14 @@ class Predictor(BasePredictor):
             apply_boundary_weight (bool, default=True):
                 Whether to apply boundary weights to mitigate boundary artefacts
                 in aux predictions.
+            save_intermediate (bool, default=False):
+                Whether to save intermediate results (logits). If True, the method
+                returns a tuple (final predictions, intermediate results), where the
+                intermediate results are the raw model outputs before argmax.
 
         Returns:
             Dict[str, torch.Tensor]:
-                Dictionary containing the model predictions (probabilities).
-                Shapes: (B, C, H, W).
+                Dictionary containing the model predictions. Shapes: (B, C, H, W).
         """
         # check if the input is a tensor
         if not isinstance(x, torch.Tensor):
@@ -311,14 +327,22 @@ class Predictor(BasePredictor):
                 .unsqueeze(0)
             )
 
+        intermediate = None
         with torch.no_grad():
             if self.mixed_precision:
                 with torch.autocast(self.device.type, dtype=torch.float16):
                     probs = self._predict_sliding_win(x, window_size, stride, padding)
+                    if save_intermediate:
+                        intermediate = probs
                     probs = self._argmax(probs)
             else:
                 probs = self._predict_sliding_win(x, window_size, stride, padding)
+                if save_intermediate:
+                    intermediate = probs
                 probs = self._argmax(probs)
+
+        if save_intermediate:
+            return probs, intermediate
 
         return probs
 
