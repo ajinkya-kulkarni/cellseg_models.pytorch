@@ -2,6 +2,7 @@ from .bce import BCELoss
 from .ce import CELoss
 from .dice import DiceLoss
 from .focal import FocalLoss
+from .instanseg import InstanSegCriterion
 from .iou import IoULoss
 from .mae import MAE
 from .mse import MSE
@@ -21,6 +22,7 @@ SEG_LOSS_LOOKUP = {
     "msssim": MSSSIM,
     "mae": MAE,
     "bce": BCELoss,
+    "instanseg": InstanSegCriterion,
 }
 
 
@@ -38,4 +40,5 @@ __all__ = [
     "SCELoss",
     "MAE",
     "BCELoss",
+    "InstanSegCriterion",
 ]

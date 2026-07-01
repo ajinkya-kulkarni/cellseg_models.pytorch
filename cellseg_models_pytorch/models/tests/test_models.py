@@ -8,6 +8,7 @@ from cellseg_models_pytorch.models.stardist.stardist_unet import stardist_nuclei
 from cellseg_models_pytorch.models.hovernet.hovernet_unet import hovernet_nuclei
 from cellseg_models_pytorch.models.cellvit.cellvit_unet import cellvit_nuclei
 from cellseg_models_pytorch.models.cppnet.cppnet_unet import cppnet_nuclei
+from cellseg_models_pytorch.models.instanseg.instanseg_unet import instanseg_nuclei
 
 @pytest.mark.parametrize("enc_name", ["resnet18", "samvit_base_patch16"])
 def test_cppnet_fwdbwd(enc_name):
@@ -90,3 +91,15 @@ def test_omnipose_fwdbwd(enc_name):
 
     assert y["nuc"].type_map.shape == x.shape
     assert y["nuc"].aux_map.shape == torch.Size([1, 2, 64, 64])
+
+
+@pytest.mark.parametrize("enc_name", ["resnet18", "samvit_base_patch16"])
+def test_instanseg_fwdbwd(enc_name):
+    x = torch.rand([1, 3, 64, 64])
+    model = instanseg_nuclei(3, enc_name=enc_name, enc_pretrain=False)
+
+    y = model(x)
+    y["nuc"].aux_map.mean().backward()
+
+    assert y["nuc"].type_map.shape == x.shape
+    assert y["nuc"].aux_map.shape == torch.Size([1, 4, 64, 64])

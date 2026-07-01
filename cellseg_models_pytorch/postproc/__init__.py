@@ -14,6 +14,7 @@ from .functional.hovernet import post_proc_hovernet
 from .functional.omnipose import get_masks_omnipose, post_proc_omnipose
 from .functional.stardist.nms import get_bboxes
 from .functional.stardist.stardist import post_proc_stardist, post_proc_stardist_orig
+from .functional.instanseg.instanseg import post_proc_instanseg
 
 POSTPROC_LOOKUP = {
     "stardist_orig": post_proc_stardist_orig,
@@ -24,6 +25,7 @@ POSTPROC_LOOKUP = {
     "dcan": post_proc_dcan,
     "drfns": post_proc_drfns,
     "hovernet": post_proc_hovernet,
+    "instanseg": post_proc_instanseg,
 }
 
 __all__ = [
@@ -43,4 +45,5 @@ __all__ = [
     "post_proc_drfns",
     "post_proc_dcan",
     "get_bboxes",
+    "post_proc_instanseg",
 ]
