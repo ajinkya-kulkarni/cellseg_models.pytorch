@@ -31,4 +31,5 @@ PRETRAINED = {
             "filename": "cppnet_hgsc_v1_efficientnet_b5.safetensors",
         },
     },
+    "instanseg": {},
 }

@@ -46,6 +46,7 @@ MODEL_AUX_OUT_TYPES = [
     "dist",
     "dcan",
     "dran",
+    "instanseg",
 ]
 
 AUX_COMBOS = [
