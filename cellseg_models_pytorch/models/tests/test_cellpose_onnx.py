@@ -163,7 +163,7 @@ def test_pretrained_cellpose_real_image_onnx_parity(tmp_path: Path) -> None:
     ort = pytest.importorskip("onnxruntime")
 
     weights = os.environ.get("CELLSEG_CELLPOSE_WEIGHTS", "hgsc_v1_efficientnet_b5")
-    tile_size = int(os.environ.get("CELLSEG_CELLPOSE_TILE_SIZE", "256"))
+    tile_size = int(os.environ.get("CELLSEG_CELLPOSE_TILE_SIZE", "1024"))
 
     image = Image.open(image_path).convert("RGB")
     image = image.resize((tile_size, tile_size), Image.Resampling.BILINEAR)
@@ -197,5 +197,8 @@ def test_pretrained_cellpose_real_image_onnx_parity(tmp_path: Path) -> None:
     expected_post = model.post_processor.postproc_serial(_to_soft_output(expected))["nuc"][0]
     actual_post = model.post_processor.postproc_serial(_to_soft_output(actual))["nuc"][0]
 
+    assert np.count_nonzero(expected_post[0]) > 0, (
+        "pretrained CellPose validation produced an empty instance mask"
+    )
     np.testing.assert_array_equal(actual_post[0], expected_post[0])
     np.testing.assert_array_equal(actual_post[1], expected_post[1])
