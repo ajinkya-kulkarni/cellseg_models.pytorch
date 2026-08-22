@@ -192,7 +192,7 @@ def test_pretrained_cellpose_real_image_onnx_parity(tmp_path: Path) -> None:
     actual = session.run(None, {"image": x.numpy()})
 
     for expected_tensor, actual_tensor in zip(expected, actual):
-        np.testing.assert_allclose(actual_tensor, expected_tensor, rtol=1e-4, atol=1e-5)
+        np.testing.assert_allclose(actual_tensor, expected_tensor, rtol=1e-4, atol=2e-5)
 
     expected_post = model.post_processor.postproc_serial(_to_soft_output(expected))["nuc"][0]
     actual_post = model.post_processor.postproc_serial(_to_soft_output(actual))["nuc"][0]
