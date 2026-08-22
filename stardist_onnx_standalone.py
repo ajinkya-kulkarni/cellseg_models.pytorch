@@ -57,7 +57,7 @@ WEIGHTS = "hgsc_v1_efficientnet_b5"
 TILE_SIZE = 256
 WARMUP = 5
 REPEATS = 30
-OPSET_VERSION = 17
+OPSET_VERSION = 18
 
 # False = H&E repo example (recommended for this pretrained checkpoint)
 # True  = actual StarDist example TIFF (fluorescence; parity/speed test only)
