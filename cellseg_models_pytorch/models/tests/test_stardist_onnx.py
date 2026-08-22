@@ -81,12 +81,10 @@ def test_export_stardist_onnx_contract(
         "ray_map",
         "type_map",
     ]
-    assert export_call["kwargs"]["dynamic_axes"] == {
-        "image": {0: "batch"},
-        "binary_map": {0: "batch"},
-        "ray_map": {0: "batch"},
-        "type_map": {0: "batch"},
-    }
+    assert export_call["kwargs"]["dynamo"] is True
+    assert "dynamic_axes" not in export_call["kwargs"]
+    assert set(export_call["kwargs"]["dynamic_shapes"]) == {"x"}
+    assert set(export_call["kwargs"]["dynamic_shapes"]["x"]) == {0}
     assert export_call["kwargs"]["opset_version"] == 17
 
 
