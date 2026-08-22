@@ -15,6 +15,7 @@ from cellseg_models_pytorch.models.stardist import (
     export_stardist_onnx,
 )
 from cellseg_models_pytorch.models.stardist.stardist_unet import stardist_nuclei
+from cellseg_models_pytorch.transforms.functional.normalization import minmax_normalize
 
 
 def _make_stardist() -> torch.nn.Module:
@@ -173,7 +174,7 @@ def test_pretrained_stardist_real_image_onnx_parity(tmp_path: Path) -> None:
 
     image = Image.open(image_path).convert("RGB")
     image = image.resize((tile_size, tile_size), Image.Resampling.BILINEAR)
-    array = np.asarray(image, dtype=np.float32) / 255.0
+    array = minmax_normalize(np.asarray(image), copy=True)
     x = torch.from_numpy(array.transpose(2, 0, 1)).unsqueeze(0).contiguous()
 
     model = StarDist.from_pretrained(weights, device=torch.device("cpu"))
