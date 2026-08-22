@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -5,8 +6,11 @@ from types import ModuleType
 import numpy as np
 import pytest
 import torch
+from PIL import Image
 
+from cellseg_models_pytorch.decoders.multitask_decoder import SoftInstanceOutput
 from cellseg_models_pytorch.models.stardist import (
+    StarDist,
     StarDistONNXWrapper,
     export_stardist_onnx,
 )
@@ -20,6 +24,19 @@ def _make_stardist() -> torch.nn.Module:
         enc_name="resnet18",
         enc_pretrain=False,
     ).eval()
+
+
+def _to_soft_output(outputs: list[np.ndarray]) -> dict:
+    binary_map, ray_map, type_logits = outputs
+    return {
+        "nuc": SoftInstanceOutput(
+            type_map=torch.from_numpy(type_logits).argmax(1),
+            aux_map=torch.from_numpy(ray_map),
+            binary_map=torch.from_numpy(binary_map),
+        ),
+        "cyto": None,
+        "tissue": None,
+    }
 
 
 def test_stardist_onnx_wrapper_matches_model_output() -> None:
@@ -124,3 +141,53 @@ def test_stardist_onnxruntime_matches_pytorch(tmp_path: Path) -> None:
             rtol=1e-4,
             atol=1e-5,
         )
+
+
+def test_pretrained_stardist_real_image_onnx_parity(tmp_path: Path) -> None:
+    """Validate dense and postprocessed parity with a real checkpoint/image.
+
+    Set CELLSEG_STARDIST_IMAGE to a real RGB image path to enable this integration
+    test. CELLSEG_STARDIST_WEIGHTS may be a local checkpoint path or a registered
+    checkpoint name; it defaults to the HGSC EfficientNet-B5 StarDist checkpoint.
+    """
+    image_path = os.environ.get("CELLSEG_STARDIST_IMAGE")
+    if image_path is None:
+        pytest.skip("set CELLSEG_STARDIST_IMAGE to enable real-checkpoint validation")
+
+    pytest.importorskip("onnx")
+    pytest.importorskip("onnxscript")
+    ort = pytest.importorskip("onnxruntime")
+
+    weights = os.environ.get("CELLSEG_STARDIST_WEIGHTS", "hgsc_v1_efficientnet_b5")
+    tile_size = int(os.environ.get("CELLSEG_STARDIST_TILE_SIZE", "256"))
+
+    image = Image.open(image_path).convert("RGB")
+    image = image.resize((tile_size, tile_size), Image.Resampling.BILINEAR)
+    array = np.asarray(image, dtype=np.float32) / 255.0
+    x = torch.from_numpy(array.transpose(2, 0, 1)).unsqueeze(0).contiguous()
+
+    model = StarDist.from_pretrained(weights, device=torch.device("cpu"))
+    model.set_inference_mode(mixed_precision=False)
+    wrapper = StarDistONNXWrapper(model.model).eval()
+
+    output_path = model.export_onnx(
+        tmp_path / "stardist_pretrained.onnx",
+        input_shape=(1, 3, tile_size, tile_size),
+        dynamic_batch=True,
+    )
+    session = ort.InferenceSession(
+        str(output_path), providers=["CPUExecutionProvider"]
+    )
+
+    with torch.inference_mode():
+        expected = [tensor.cpu().numpy() for tensor in wrapper(x)]
+    actual = session.run(None, {"image": x.numpy()})
+
+    for expected_tensor, actual_tensor in zip(expected, actual):
+        np.testing.assert_allclose(actual_tensor, expected_tensor, rtol=1e-4, atol=1e-5)
+
+    expected_post = model.post_processor.postproc_serial(_to_soft_output(expected))["nuc"][0]
+    actual_post = model.post_processor.postproc_serial(_to_soft_output(actual))["nuc"][0]
+
+    np.testing.assert_array_equal(actual_post[0], expected_post[0])
+    np.testing.assert_array_equal(actual_post[1], expected_post[1])
