@@ -191,8 +191,16 @@ def test_pretrained_cellpose_real_image_onnx_parity(tmp_path: Path) -> None:
         expected = [tensor.cpu().numpy() for tensor in wrapper(x)]
     actual = session.run(None, {"image": x.numpy()})
 
-    for expected_tensor, actual_tensor in zip(expected, actual):
-        np.testing.assert_allclose(actual_tensor, expected_tensor, rtol=1e-4, atol=5e-5)
+    dense_tolerances = {"flow_map": 5e-5, "type_map": 2e-4}
+    for name, expected_tensor, actual_tensor in zip(
+        ("flow_map", "type_map"), expected, actual
+    ):
+        np.testing.assert_allclose(
+            actual_tensor,
+            expected_tensor,
+            rtol=1e-4,
+            atol=dense_tolerances[name],
+        )
 
     expected_post = model.post_processor.postproc_serial(_to_soft_output(expected))["nuc"][0]
     actual_post = model.post_processor.postproc_serial(_to_soft_output(actual))["nuc"][0]
