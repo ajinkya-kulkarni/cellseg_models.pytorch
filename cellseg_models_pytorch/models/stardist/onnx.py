@@ -68,12 +68,13 @@ def export_stardist_onnx(
     output_path : str or pathlib.Path
         Destination ``.onnx`` file.
     input_shape : tuple of int, default=(1, 3, 256, 256)
-        Example BCHW tensor shape used while tracing the model. Spatial dimensions
+        Example BCHW tensor shape used while exporting the model. Spatial dimensions
         are fixed in the exported graph.
     opset_version : int, default=17
         ONNX opset version.
     dynamic_batch : bool, default=True
-        Mark the batch dimension dynamic for the input and all outputs.
+        Mark the input batch dimension dynamic. Output batch dimensions inherit the
+        same symbolic dimension through the exported graph.
 
     Returns
     -------
@@ -102,26 +103,21 @@ def export_stardist_onnx(
     wrapper.eval()
 
     example = torch.zeros(input_shape, dtype=torch.float32, device=device)
-    dynamic_axes = None
+    dynamic_shapes = None
     if dynamic_batch:
-        dynamic_axes = {
-            "image": {0: "batch"},
-            "binary_map": {0: "batch"},
-            "ray_map": {0: "batch"},
-            "type_map": {0: "batch"},
-        }
+        dynamic_shapes = {"x": {0: torch.export.Dim("batch")}}
 
     try:
         with torch.inference_mode():
             torch.onnx.export(
                 wrapper,
-                example,
+                (example,),
                 str(output_path),
                 input_names=["image"],
                 output_names=["binary_map", "ray_map", "type_map"],
-                dynamic_axes=dynamic_axes,
+                dynamo=True,
+                dynamic_shapes=dynamic_shapes,
                 opset_version=opset_version,
-                do_constant_folding=True,
             )
     finally:
         network.train(was_training)
