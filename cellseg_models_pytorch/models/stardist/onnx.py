@@ -52,7 +52,7 @@ def export_stardist_onnx(
     model: Union[StarDist, nn.Module],
     output_path: Union[str, Path],
     input_shape: Tuple[int, int, int, int] = (1, 3, 256, 256),
-    opset_version: int = 17,
+    opset_version: int = 18,
     dynamic_batch: bool = True,
 ) -> Path:
     """Export the StarDist neural-network forward pass to ONNX.
@@ -70,7 +70,7 @@ def export_stardist_onnx(
     input_shape : tuple of int, default=(1, 3, 256, 256)
         Example BCHW tensor shape used while exporting the model. Spatial dimensions
         are fixed in the exported graph.
-    opset_version : int, default=17
+    opset_version : int, default=18
         ONNX opset version.
     dynamic_batch : bool, default=True
         Mark the input batch dimension dynamic. Output batch dimensions inherit the
