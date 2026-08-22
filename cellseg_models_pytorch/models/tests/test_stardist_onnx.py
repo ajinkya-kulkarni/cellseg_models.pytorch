@@ -1,4 +1,6 @@
+import sys
 from pathlib import Path
+from types import ModuleType
 
 import numpy as np
 import pytest
@@ -44,6 +46,47 @@ def test_export_stardist_onnx_validates_input_shape(tmp_path: Path) -> None:
             tmp_path / "stardist.onnx",
             input_shape=(1, 3, 64, 0),
         )
+
+
+def test_export_stardist_onnx_contract(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    model = _make_stardist()
+    model.train()
+    output_path = tmp_path / "nested" / "stardist.onnx"
+    export_call = {}
+
+    monkeypatch.setitem(sys.modules, "onnx", ModuleType("onnx"))
+
+    def fake_export(*args, **kwargs) -> None:
+        export_call["args"] = args
+        export_call["kwargs"] = kwargs
+
+    monkeypatch.setattr(torch.onnx, "export", fake_export)
+
+    result = export_stardist_onnx(
+        model,
+        output_path,
+        input_shape=(1, 3, 64, 64),
+        dynamic_batch=True,
+    )
+
+    assert result == output_path
+    assert output_path.parent.is_dir()
+    assert model.training
+    assert export_call["kwargs"]["input_names"] == ["image"]
+    assert export_call["kwargs"]["output_names"] == [
+        "binary_map",
+        "ray_map",
+        "type_map",
+    ]
+    assert export_call["kwargs"]["dynamic_axes"] == {
+        "image": {0: "batch"},
+        "binary_map": {0: "batch"},
+        "ray_map": {0: "batch"},
+        "type_map": {0: "batch"},
+    }
+    assert export_call["kwargs"]["opset_version"] == 17
 
 
 def test_stardist_onnxruntime_matches_pytorch(tmp_path: Path) -> None:
