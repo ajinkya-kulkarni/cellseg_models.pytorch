@@ -73,7 +73,7 @@ class StarDist(BaseModelInst):
         self,
         output_path: Union[str, Path],
         input_shape: Tuple[int, int, int, int] = (1, 3, 256, 256),
-        opset_version: int = 17,
+        opset_version: int = 18,
         dynamic_batch: bool = True,
     ) -> Path:
         """Export the StarDist dense prediction network to ONNX.
