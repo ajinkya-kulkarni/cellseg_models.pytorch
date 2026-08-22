@@ -102,7 +102,7 @@ def test_export_stardist_onnx_contract(
     assert "dynamic_axes" not in export_call["kwargs"]
     assert set(export_call["kwargs"]["dynamic_shapes"]) == {"x"}
     assert set(export_call["kwargs"]["dynamic_shapes"]["x"]) == {0}
-    assert export_call["kwargs"]["opset_version"] == 17
+    assert export_call["kwargs"]["opset_version"] == 18
 
 
 def test_stardist_onnxruntime_matches_pytorch(tmp_path: Path) -> None:
