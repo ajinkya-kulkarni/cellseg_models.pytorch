@@ -27,6 +27,22 @@ class StarDistONNXWrapper(nn.Module):
         return nuc.binary_map, nuc.aux_map, nuc.type_map
 
 
+def _check_torch_export_version() -> None:
+    """Require the torch.export-based ONNX exporter introduced in PyTorch 2.5."""
+    try:
+        major, minor = (
+            int(part)
+            for part in torch.__version__.split("+", 1)[0].split(".")[:2]
+        )
+    except (TypeError, ValueError):
+        raise RuntimeError(
+            f"Unable to determine PyTorch version from {torch.__version__!r}."
+        ) from None
+
+    if (major, minor) < (2, 5):
+        raise RuntimeError("StarDist ONNX export requires PyTorch >= 2.5.")
+
+
 def _check_onnx_export_dependencies() -> None:
     """Raise an actionable error when PyTorch ONNX dependencies are missing."""
     missing = []
@@ -84,6 +100,7 @@ def export_stardist_onnx(
     if len(input_shape) != 4 or any(dim <= 0 for dim in input_shape):
         raise ValueError("input_shape must contain four positive BCHW dimensions.")
 
+    _check_torch_export_version()
     _check_onnx_export_dependencies()
 
     network = model.model if isinstance(model, StarDist) else model
