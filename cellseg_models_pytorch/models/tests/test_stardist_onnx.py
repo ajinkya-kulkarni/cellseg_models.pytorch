@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import torch
 
-from cellseg_models_pytorch.models.stardist.onnx import (
+from cellseg_models_pytorch.models.stardist import (
     StarDistONNXWrapper,
     export_stardist_onnx,
 )
