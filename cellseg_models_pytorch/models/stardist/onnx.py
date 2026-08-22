@@ -31,8 +31,7 @@ def _check_torch_export_version() -> None:
     """Require the torch.export-based ONNX exporter introduced in PyTorch 2.5."""
     try:
         major, minor = (
-            int(part)
-            for part in torch.__version__.split("+", 1)[0].split(".")[:2]
+            int(part) for part in torch.__version__.split("+", 1)[0].split(".")[:2]
         )
     except (TypeError, ValueError):
         raise RuntimeError(
