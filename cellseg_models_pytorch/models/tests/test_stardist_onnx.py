@@ -65,6 +65,16 @@ def test_export_stardist_onnx_validates_input_shape(tmp_path: Path) -> None:
         )
 
 
+def test_export_stardist_onnx_requires_torch_2_5(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    model = _make_stardist()
+    monkeypatch.setattr(torch, "__version__", "2.4.1")
+
+    with pytest.raises(RuntimeError, match=r"PyTorch >= 2\.5"):
+        export_stardist_onnx(model, tmp_path / "stardist.onnx")
+
+
 def test_export_stardist_onnx_contract(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
