@@ -27,6 +27,27 @@ class StarDistONNXWrapper(nn.Module):
         return nuc.binary_map, nuc.aux_map, nuc.type_map
 
 
+def _check_onnx_export_dependencies() -> None:
+    """Raise an actionable error when PyTorch ONNX dependencies are missing."""
+    missing = []
+    try:
+        import onnx  # noqa: F401
+    except ImportError:
+        missing.append("onnx")
+
+    try:
+        import onnxscript  # noqa: F401
+    except ImportError:
+        missing.append("onnxscript")
+
+    if missing:
+        packages = " ".join(missing)
+        raise ImportError(
+            "ONNX export requires additional packages. "
+            f"Install them with `pip install {packages}`."
+        )
+
+
 def export_stardist_onnx(
     model: Union[StarDist, nn.Module],
     output_path: Union[str, Path],
@@ -62,13 +83,7 @@ def export_stardist_onnx(
     if len(input_shape) != 4 or any(dim <= 0 for dim in input_shape):
         raise ValueError("input_shape must contain four positive BCHW dimensions.")
 
-    try:
-        import onnx  # noqa: F401
-    except ImportError as exc:
-        raise ImportError(
-            "ONNX export requires the optional 'onnx' package. "
-            "Install it with `pip install onnx`."
-        ) from exc
+    _check_onnx_export_dependencies()
 
     network = model.model if isinstance(model, StarDist) else model
     if not isinstance(network, nn.Module):
