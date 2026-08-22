@@ -57,6 +57,7 @@ def test_export_stardist_onnx_contract(
     export_call = {}
 
     monkeypatch.setitem(sys.modules, "onnx", ModuleType("onnx"))
+    monkeypatch.setitem(sys.modules, "onnxscript", ModuleType("onnxscript"))
 
     def fake_export(*args, **kwargs) -> None:
         export_call["args"] = args
@@ -91,6 +92,7 @@ def test_export_stardist_onnx_contract(
 
 def test_stardist_onnxruntime_matches_pytorch(tmp_path: Path) -> None:
     pytest.importorskip("onnx")
+    pytest.importorskip("onnxscript")
     ort = pytest.importorskip("onnxruntime")
 
     model = _make_stardist()
