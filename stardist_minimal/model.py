@@ -44,7 +44,11 @@ class _Head(nn.Sequential):
 
 
 class StarDist(nn.Module):
-    """Single-class 2D StarDist network: probability map + radial distances."""
+    """Single-class 2D StarDist network.
+
+    The two dense outputs are the normalized object distance-transform score map
+    and the radial-distance maps used for polygon reconstruction.
+    """
 
     def __init__(
         self,
@@ -54,6 +58,7 @@ class StarDist(nn.Module):
     ) -> None:
         super().__init__()
         self.n_rays = n_rays
+        self.encoder_name = encoder_name
         self.encoder = timm.create_model(
             encoder_name,
             pretrained=pretrained,
@@ -87,13 +92,13 @@ class StarDist(nn.Module):
             in_channels = out_channels
 
         self.decoder = nn.ModuleList(stages)
-        self.prob_head = _Head(in_channels, 1)
-        self.dist_head = _Head(in_channels, n_rays)
+        self.score_head = _Head(in_channels, 1)
+        self.ray_head = _Head(in_channels, n_rays)
 
         for module in self.decoder.modules():
             if isinstance(module, nn.Conv2d):
                 nn.init.kaiming_uniform_(module.weight, mode="fan_in", nonlinearity="relu")
-        for head in (self.prob_head, self.dist_head):
+        for head in (self.score_head, self.ray_head):
             for module in head.modules():
                 if isinstance(module, nn.Conv2d):
                     nn.init.xavier_uniform_(module.weight)
@@ -108,4 +113,4 @@ class StarDist(nn.Module):
         for i, stage in enumerate(self.decoder):
             y = stage(y, skips[i] if i < len(skips) else None)
 
-        return self.prob_head(y), self.dist_head(y)
+        return self.score_head(y), self.ray_head(y)
