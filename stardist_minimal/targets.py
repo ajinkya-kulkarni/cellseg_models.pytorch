@@ -1,6 +1,7 @@
 # Radial-distance target generation adapted from StarDist (BSD-3-Clause).
 import numpy as np
 from numba import njit
+from scipy.ndimage import distance_transform_edt
 
 
 @njit
@@ -39,3 +40,25 @@ def gen_stardist_maps(inst_map: np.ndarray, n_rays: int) -> np.ndarray:
                         break
 
     return dist.transpose(2, 0, 1)
+
+
+def gen_dist_map(inst_map: np.ndarray) -> np.ndarray:
+    """Normalized Euclidean distance transform computed independently per instance."""
+    inst_map = np.asarray(inst_map)
+    out = np.zeros(inst_map.shape, dtype=np.float32)
+    for label in np.unique(inst_map):
+        if label == 0:
+            continue
+        ys, xs = np.where(inst_map == label)
+        if ys.size == 0:
+            continue
+        y0, y1 = max(0, int(ys.min()) - 1), min(inst_map.shape[0], int(ys.max()) + 2)
+        x0, x1 = max(0, int(xs.min()) - 1), min(inst_map.shape[1], int(xs.max()) + 2)
+        obj = inst_map[y0:y1, x0:x1] == label
+        d = distance_transform_edt(obj).astype(np.float32)
+        maximum = float(d.max())
+        if maximum > 0:
+            d /= maximum
+        patch = out[y0:y1, x0:x1]
+        patch[obj] = d[obj]
+    return out
