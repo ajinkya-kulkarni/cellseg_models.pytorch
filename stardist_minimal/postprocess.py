@@ -81,20 +81,20 @@ def _coordinates(dist: np.ndarray, points: np.ndarray) -> np.ndarray:
 
 
 def postprocess_stardist(
-    prob_map: np.ndarray,
-    dist_map: np.ndarray,
+    score_map: np.ndarray,
+    ray_map: np.ndarray,
     score_thresh: float = 0.4,
     iou_thresh: float = 0.4,
 ) -> np.ndarray:
-    """Convert StarDist probability and radial-distance maps to instance labels."""
-    prob = np.asarray(prob_map, dtype=np.float32)
-    dist = np.asarray(dist_map, dtype=np.float32).transpose(1, 2, 0)
-    shape = prob.shape
+    """Convert StarDist EDT score and radial-distance maps to instance labels."""
+    score = np.asarray(score_map, dtype=np.float32)
+    dist = np.asarray(ray_map, dtype=np.float32).transpose(1, 2, 0)
+    shape = score.shape
 
-    lo, hi = float(prob.min()), float(prob.max())
-    prob = (prob - lo) / (hi - lo) if hi > lo else np.zeros_like(prob)
+    lo, hi = float(score.min()), float(score.max())
+    score = (score - lo) / (hi - lo) if hi > lo else np.zeros_like(score)
 
-    mask = prob > score_thresh
+    mask = score > score_thresh
     valid = np.zeros_like(mask)
     valid[2:-2, 2:-2] = True
     mask &= valid
@@ -107,7 +107,7 @@ def postprocess_stardist(
         return np.zeros(shape, dtype=np.int32)
 
     dist = dist[mask]
-    scores = prob[mask]
+    scores = score[mask]
     order = np.argsort(scores)[::-1]
     dist, scores, points = dist[order], scores[order], points[order]
 
@@ -116,7 +116,8 @@ def postprocess_stardist(
     coords = _coordinates(dist[keep], points[keep])
 
     labels = np.zeros(shape, dtype=np.int32)
-    for label, vertices in enumerate(coords, 1):
+    # Draw low-confidence polygons first so high-confidence ones win overlaps.
+    for label, vertices in enumerate(coords[::-1], 1):
         rr, cc = polygon(*vertices, shape)
         labels[rr, cc] = label
     return labels
