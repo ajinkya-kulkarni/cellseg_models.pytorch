@@ -19,21 +19,30 @@ def instance_stats(
     pred_ids = pred_ids[pred_ids != 0]
 
     if len(gt_ids) == 0 or len(pred_ids) == 0:
-        tp = 0
-        fp = int(len(pred_ids))
-        fn = int(len(gt_ids))
-        return {"tp": tp, "fp": fp, "fn": fn, "iou_sum": 0.0}
+        return {
+            "tp": 0,
+            "fp": int(len(pred_ids)),
+            "fn": int(len(gt_ids)),
+            "iou_sum": 0.0,
+        }
 
-    gt_index = {int(label): i for i, label in enumerate(gt_ids)}
-    pred_index = {int(label): i for i, label in enumerate(pred_ids)}
-    intersections = np.zeros((len(gt_ids), len(pred_ids)), dtype=np.int64)
+    gt_positive = truth > 0
+    pred_positive = prediction > 0
+    gt_area = np.bincount(
+        np.searchsorted(gt_ids, truth[gt_positive]), minlength=len(gt_ids)
+    )
+    pred_area = np.bincount(
+        np.searchsorted(pred_ids, prediction[pred_positive]), minlength=len(pred_ids)
+    )
 
-    both = (truth > 0) & (prediction > 0)
-    for gt, pred in zip(truth[both].ravel(), prediction[both].ravel()):
-        intersections[gt_index[int(gt)], pred_index[int(pred)]] += 1
+    both = gt_positive & pred_positive
+    gt_idx = np.searchsorted(gt_ids, truth[both])
+    pred_idx = np.searchsorted(pred_ids, prediction[both])
+    pair_idx = gt_idx * len(pred_ids) + pred_idx
+    intersections = np.bincount(
+        pair_idx, minlength=len(gt_ids) * len(pred_ids)
+    ).reshape(len(gt_ids), len(pred_ids))
 
-    gt_area = np.asarray([(truth == label).sum() for label in gt_ids], dtype=np.int64)
-    pred_area = np.asarray([(prediction == label).sum() for label in pred_ids], dtype=np.int64)
     union = gt_area[:, None] + pred_area[None, :] - intersections
     iou = np.divide(
         intersections,
